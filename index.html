@@ -74,7 +74,17 @@
     <option value="danilo_2.glb">Danila 2</option>
     <option value="fox.glb">Fox</option>
     <option value="frame.glb">Frame</option>
+    <option value="frameV3.glb">Frame</option>
   </select>
+
+  <div id="texture-controls" style="display: none; margin-bottom: 20px;">
+    <label for="texture-select"><strong>Background Texture:</strong></label>
+    <select id="texture-select">
+      <option value="None">None</option>
+      <option value="finale.jpg">finale</option>
+      <option value="pic.glb">pic</option>
+    </select>
+  </div>
 
   <model-viewer id="viewer"
       src="burger.glb"
@@ -134,15 +144,33 @@
     }
 
     function changeModel(file) {
-      modelViewer.src = file;
+    modelViewer.src = file;
 
-      const bgControls = document.getElementById("background-controls");
-      if (file === "frame.glb" || file === "frameV2.glb") {
-        bgControls.style.display = "flex";
-      } else {
-        bgControls.style.display = "none";
-      }
+    const bgControls = document.getElementById("background-controls");
+    const textureControls = document.getElementById("texture-controls");
+
+    if (file === "frame.glb" || file === "frameV2.glb") {
+      bgControls.style.display = "flex";
+      textureControls.style.display = "block";
+    } else {
+      bgControls.style.display = "none";
+      textureControls.style.display = "none";
     }
+  }
+
+    const textureSelect = document.getElementById("texture-select");
+    const textureControls = document.getElementById("texture-controls");
+
+    textureSelect.addEventListener("change", async (event) => {
+      if (!materialRef) return;
+
+      if (event.target.value === "None") {
+        materialRef.pbrMetallicRoughness.baseColorTexture.setTexture(null);
+      } else {
+        const texture = await modelViewer.createTexture(event.target.value);
+        materialRef.pbrMetallicRoughness.baseColorTexture.setTexture(texture);
+      }
+    });
 
     function loadFrame() {
       document.getElementById('models-control').value = "frame.glb";
