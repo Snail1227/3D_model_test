@@ -21,6 +21,13 @@
     .color-buttons {
       margin-top: 10px;
     }
+    .backgroungs {
+      display: flex;
+      align-items: center;
+      flex-direction: row;
+      gap: 20px;
+      margin: 20px;
+    }
     .color-buttons button {
       margin: 0 5px;
       padding: 8px 16px;
@@ -28,27 +35,45 @@
       cursor: pointer;
       border: none;
       border-radius: 6px;
-      color: white;
     }
-    .red { background-color: #ff0000; }
-    .green { background-color: #00aa00; }
-    .blue { background-color: #0000ff; }
-    .yellow { 
-        background-color: #fffb00;
-        color: rgb(0, 0, 0);
+    .color-controls,
+    select {
+      padding: 10px 20px;
+      margin: 10px;
+    }
+    .cyan { background-color: #0086D6; }
+    .red { background-color: #C12E1F; }
+    .white { background-color: #ffffff; }
+    .black { background-color: #000000; color: white; }
+    .yellow { background-color: #FEC600; color: black; }
+    .default { background-color: #ccc; color: black; }
+    .controls {
+      background: rgba(255, 255, 255, 0.85);
+      padding: 10px 20px;
+      border-radius: 10px;
+      margin-top: 15px;
+    }
+    .controls p {
+      margin: 5px 0;
+    }
+    .controls input[type="range"] {
+      width: 200px;
     }
   </style>
 </head>
 <body>
 
-  <select onchange="changeModel(this.value)">
+  <select onchange="changeModel(this.value)" id="models-control">
     <option value="burger.glb">Burger</option>
     <option value="car.glb">Car</option>
-    <option value="deadpool.glb">Deadpool</option>
-    <option value="deadpool2.glb">Deadpool 2</option>
-    <option value="joker.glb">Joker</option>
-    <option value="joker2.glb">Joker 2</option>
+    <option value="deadpool_1.glb">Deadpool</option>
+    <option value="deadpool_2.glb">Deadpool 2</option>
+    <option value="joker_1.glb">Joker</option>
+    <option value="joker_2.glb">Joker 2</option>
     <option value="radiant_melee.glb">Danila</option>
+    <option value="danilo_2.glb">Danila 2</option>
+    <option value="fox.glb">Fox</option>
+    <option value="frame.glb">Frame</option>
   </select>
 
   <model-viewer id="viewer"
@@ -58,42 +83,123 @@
       auto-rotate
       camera-controls
       ar
-      shadow-intensity="1"
+      shadow-intensity="10"
       exposure="1"
-      environment-image="neutral"
+      environment-image="legacy"
       style="width: 100%; height: 500px;">
   </model-viewer>
 
   <div class="color-buttons" id="color-controls">
-    <button class="red" data-color="#ff0000">Red</button>
-    <button class="green" data-color="#00ff00">Green</button>
-    <button class="blue" data-color="#0000ff">Blue</button>
-    <button class="yellow" data-color="#fffb00">Yellow</button>
+    <button class="red" data-color="#C12E1F">Red</button>
+    <button class="white" data-color="#ffffff">White</button>
+    <button class="black" data-color="#000000">Black</button>
+    <button class="yellow" data-color="#FEC600">Yellow</button>
+    <button class="cyan" data-color="#0086D6">Cyan</button>
+    <button class="default" id="default-color">Default</button>
+  </div>
+
+  <div class="backgroungs" id="background-controls" style="display: none;">
+    <button onclick="loadFrame()" style="padding: 8px 20px; font-size: 16px;">
+      No Background
+    </button>
+    <button onclick="loadFrameV2()" style="padding: 10px; display: flex; flex-direction: column; align-items: center;">
+      <img src="finale.jpg" alt="Frame V2" style="width: 60px; height: auto; border-radius: 6px; margin-bottom: 5px;">
+      Background V2
+    </button>
+  </div>
+
+  <div class="controls">
+    <div>
+      <p>Metalness: <span id="metalness-value"></span></p>
+      <input id="metalness" type="range" min="0" max="1" step="0.01" value="0.5">
+    </div>
+    <div>
+      <p>Roughness: <span id="roughness-value"></span></p>
+      <input id="roughness" type="range" min="0" max="1" step="0.01" value="0.5">
+    </div>
   </div>
 
   <script>
-    function changeModel(file) {
-      document.getElementById('viewer').src = file;
-    }
-
     const modelViewer = document.querySelector("#viewer");
+    let materialRef = null;
+    let originalColor = null;
+    let selectedColor = null;
 
     function hexToRgba(hex) {
       const bigint = parseInt(hex.replace("#", ""), 16);
       const r = ((bigint >> 16) & 255) / 255;
       const g = ((bigint >> 8) & 255) / 255;
       const b = (bigint & 255) / 255;
-      return [r, g, b, 1]; // RGBA with full alpha
+      return [r, g, b, 1];
     }
+
+    function changeModel(file) {
+      modelViewer.src = file;
+
+      const bgControls = document.getElementById("background-controls");
+      if (file === "frame.glb" || file === "frameV2.glb") {
+        bgControls.style.display = "flex";
+      } else {
+        bgControls.style.display = "none";
+      }
+    }
+
+    function loadFrame() {
+      document.getElementById('models-control').value = "frame.glb";
+      changeModel("frame.glb");
+    }
+
+    function loadFrameV2() {
+      document.getElementById('models-control').selectedIndex = -1;
+      changeModel("frameV2.glb");
+    }
+
+    modelViewer.addEventListener('load', async () => {
+      await modelViewer.updateComplete;
+      const [material] = modelViewer.model.materials;
+      materialRef = material;
+
+      if (!originalColor) {
+        originalColor = material.pbrMetallicRoughness.baseColorFactor.slice();
+      }
+
+      if (selectedColor) {
+        material.pbrMetallicRoughness.setBaseColorFactor(selectedColor);
+      }
+
+      document.getElementById("metalness").value = material.pbrMetallicRoughness.metallicFactor;
+      document.getElementById("roughness").value = material.pbrMetallicRoughness.roughnessFactor;
+      document.getElementById("metalness-value").textContent = material.pbrMetallicRoughness.metallicFactor;
+      document.getElementById("roughness-value").textContent = material.pbrMetallicRoughness.roughnessFactor;
+    });
 
     document.querySelector('#color-controls').addEventListener('click', async (event) => {
       const color = event.target.dataset.color;
-      if (!color) return;
-
+      if (!color || !materialRef) return;
+      selectedColor = hexToRgba(color);
       await modelViewer.updateComplete;
-      const [material] = modelViewer.model.materials;
-      const rgba = hexToRgba(color);
-      material.pbrMetallicRoughness.setBaseColorFactor(rgba);
+      materialRef.pbrMetallicRoughness.setBaseColorFactor(selectedColor);
+    });
+
+    document.getElementById('default-color').addEventListener('click', async () => {
+      if (!originalColor || !materialRef) return;
+      await modelViewer.updateComplete;
+      materialRef.pbrMetallicRoughness.setBaseColorFactor(originalColor);
+      selectedColor = null;
+    });
+
+    document.getElementById('metalness').addEventListener('input', (event) => {
+      if (materialRef) {
+        materialRef.pbrMetallicRoughness.setMetallicFactor(event.target.value);
+        document.getElementById("metalness-value").textContent = event.target.value;
+      }
+    });
+
+    document.getElementById('roughness').addEventListener('input', (event) => {
+      if (materialRef) {
+        materialRef.pbrMetallicRoughness.setRoughnessFactor(event.target.value);
+        document.getElementById("roughness-value").textContent = event.target.value;
+      }
     });
   </script>
 
