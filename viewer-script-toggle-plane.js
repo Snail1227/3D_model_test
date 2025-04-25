@@ -12,7 +12,7 @@ document.addEventListener('DOMContentLoaded', () => {
   window.changeModel = function (file) {
     modelViewer.src = file;
     const bgControls = document.getElementById("background-controls");
-    if (file === "frame.glb" || file === "frameV2.glb" || file === "frameV2_2.glb") {
+    if (file === "frame.glb" || file === "frameV2.glb") {
       bgControls.style.display = "flex";
     } else {
       bgControls.style.display = "none";
@@ -23,8 +23,13 @@ document.addEventListener('DOMContentLoaded', () => {
   window.loadFrameV2NoTexture = function () {
     document.getElementById('models-control').selectedIndex = -1;
     lastPlaneTexture = "None";
-    changeModel("frameV2_2.glb");
+    changeModel("frameV2.glb");
     document.getElementById("texture-controls").style.display = "block";
+  };
+
+  window.loadFrame = function () {
+    document.getElementById('models-control').value = "frame.glb";
+    changeModel("frame.glb");
   };
 
   window.loadFrameV2 = function () {
@@ -34,16 +39,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
   window.togglePlaneVisibility = async function () {
     await modelViewer.updateComplete;
-    const mat = modelViewer.model.getMaterialByName("Material.001");
-    if (!mat) return console.warn("Material not found");
-  
-    mat.setAlphaMode("BLEND");
-  
-    const color = mat.pbrMetallicRoughness.baseColorFactor;
-    color[3] = color[3] === 0 ? 1 : 0;
-    mat.pbrMetallicRoughness.setBaseColorFactor(color);
+    const mesh = modelViewer.model.getObjectByName("Plane");
+    if (mesh) {
+      mesh.visible = !planeVisible;
+      planeVisible = !planeVisible;
+    }
   };
-  
+
   async function applyTextureToPlaneMaterial(textureFile) {
     await modelViewer.updateComplete;
     const targetMaterial = modelViewer.model.materials.find(mat => mat.name === "Material.001");
